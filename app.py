@@ -5,6 +5,7 @@ import os
 import json
 import traceback
 import logging
+import numpy as np
 from werkzeug.utils import secure_filename
 
 # Configure logging
@@ -277,8 +278,9 @@ RECOMMENDATION:
         
         # Clean up uploaded file if it exists
         try:
-            if 'file_path' in locals() and os.path.exists(file_path):
-                os.remove(file_path)
+            file_path_to_remove = locals().get('file_path')
+            if file_path_to_remove and os.path.exists(file_path_to_remove):
+                os.remove(file_path_to_remove)
         except:
             pass
         

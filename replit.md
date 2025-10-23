@@ -42,6 +42,11 @@ AI-powered resume analysis web application built with Flask. The system automati
   - Fixed file_path error handling in exception handler
   - Configured .gitignore for Python/Flask project
   - Set up workflow to run on port 5000
+  - Fixed infinite loading issue in resume analysis
+  - Added timeout protection (30 seconds) for file uploads
+  - Improved modal backdrop cleanup to prevent UI freezing
+  - Added favicon route to fix 404 errors
+  - Created pyrightconfig.json (LSP import warnings are false positives - all packages installed)
 
 ## User Preferences
 None specified yet.

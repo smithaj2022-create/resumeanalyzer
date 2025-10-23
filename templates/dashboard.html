@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart Resume Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .stat-card {
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 0.5rem 0;
+            color: white;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .bg-total { 
+            background: linear-gradient(45deg, #0d6efd, #6f42c1);
+        }
+        
+        .bg-accepted { 
+            background: linear-gradient(45deg, #198754, #20c997);
+        }
+        
+        .bg-rejected { 
+            background: linear-gradient(45deg, #dc3545, #e83e8c);
+        }
+        
+        .bg-success-rate { 
+            background: linear-gradient(45deg, #fd7e14, #ffc107);
+        }
+        
+        .department-badge { 
+            font-size: 0.9rem;
+            margin: 2px;
+        }
+        
+        .chart-container {
+            background: rgba(33, 37, 41, 0.9);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .progress-bar-success { 
+            background-color: #198754; 
+        }
+        .progress-bar-warning { 
+            background-color: #ffc107; 
+        }
+        .progress-bar-danger { 
+            background-color: #dc3545; 
+        }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-file-alt me-2"></i>Smart Resume Analyzer
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Home</a>
+                <a class="nav-link" href="/history">History</a>
+                <a class="nav-link active" href="/dashboard">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-5 pt-4">
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card bg-total">
+                    <i class="fas fa-file-alt fa-2x mb-2"></i>
+                    <h5>Total Resumes</h5>
+                    <h2>{{ total_resumes }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-accepted">
+                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                    <h5>Accepted</h5>
+                    <h2>{{ accepted }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-rejected">
+                    <i class="fas fa-times-circle fa-2x mb-2"></i>
+                    <h5>Rejected</h5>
+                    <h2>{{ rejected }}</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-success-rate">
+                    <i class="fas fa-chart-line fa-2x mb-2"></i>
+                    <h5>Success Rate</h5>
+                    <h2>
+                        {% if total_resumes > 0 %}
+                            {{ "%.1f"|format((accepted / total_resumes * 100)) }}%
+                        {% else %}
+                            0%
+                        {% endif %}
+                    </h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Department Distribution -->
+            <div class="col-md-6">
+                <div class="card bg-secondary mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-building me-2"></i>Department Distribution
+                        </h5>
+                        <div class="d-flex flex-wrap">
+                            {% for department, count in departments.items() %}
+                            <span class="badge bg-info department-badge m-1">
+                                {{ department }}: {{ count }}
+                            </span>
+                            {% else %}
+                            <p class="text-muted">No department data available</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Shortlisted Candidates -->
+            <div class="col-md-6">
+                <div class="card bg-secondary mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-star me-2"></i>Shortlisted Candidates
+                        </h5>
+                        <div id="shortlistResults">
+                            <div class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5 class="mb-3">
+                        <i class="fas fa-chart-pie me-2"></i>Department Distribution
+                    </h5>
+                    <canvas id="departmentChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="chart-container">
+                    <h5 class="mb-3">
+                        <i class="fas fa-chart-bar me-2"></i>Status Overview
+                    </h5>
+                    <canvas id="statusChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Analyzed Resumes -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card bg-secondary">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-list me-2"></i>All Analyzed Resumes
+                        </h5>
+                        <div class="table-responsive">
+                            <table class="table table-dark table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Department</th>
+                                        <th>Status</th>
+                                        <th>Ranking Score</th>
+                                        <th>Experience</th>
+                                        <th>Fraud Score</th>
+                                        <th>Date</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for analysis in analyses %}
+                                    <tr>
+                                        <td>{{ analysis.candidate_name or 'Unknown' }}</td>
+                                        <td>
+                                            <span class="badge bg-info">{{ analysis.department or 'N/A' }}</span>
+                                        </td>
+                                        <td>
+                                            {% if analysis.classification_status == 'Accepted' %}
+                                            <span class="badge bg-success">Accepted</span>
+                                            {% else %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                {% if analysis.ranking_score >= 70 %}
+                                                <div class="progress-bar progress-bar-success" role="progressbar" style="width: {{ analysis.ranking_score }}%">
+                                                    {{ "%.1f"|format(analysis.ranking_score) }}
+                                                </div>
+                                                {% elif analysis.ranking_score >= 40 %}
+                                                <div class="progress-bar progress-bar-warning" role="progressbar" style="width: {{ analysis.ranking_score }}%">
+                                                    {{ "%.1f"|format(analysis.ranking_score) }}
+                                                </div>
+                                                {% else %}
+                                                <div class="progress-bar progress-bar-danger" role="progressbar" style="width: {{ analysis.ranking_score }}%">
+                                                    {{ "%.1f"|format(analysis.ranking_score) }}
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>{{ "%.1f"|format(analysis.experience_years) }} years</td>
+                                        <td>
+                                            {% if analysis.overall_fraud_score > 70 %}
+                                            <span class="badge bg-danger">{{ "%.1f"|format(analysis.overall_fraud_score) }}%</span>
+                                            {% elif analysis.overall_fraud_score > 30 %}
+                                            <span class="badge bg-warning">{{ "%.1f"|format(analysis.overall_fraud_score) }}%</span>
+                                            {% else %}
+                                            <span class="badge bg-success">{{ "%.1f"|format(analysis.overall_fraud_score) }}%</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ analysis.upload_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-info" onclick="viewAnalysis({{ analysis.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">
+                                            <i class="fas fa-inbox fa-2x mb-2"></i>
+                                            <p>No analyses found</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize charts when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            loadShortlistedCandidates();
+        });
+
+        function initializeCharts() {
+            // Department Distribution Chart
+            const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+            const deptData = {{ departments|tojson }};
+            
+            const departmentChart = new Chart(departmentCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(deptData),
+                    datasets: [{
+                        data: Object.values(deptData),
+                        backgroundColor: [
+                            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', 
+                            '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#495057'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'white',
+                                padding: 20
+                            }
+                        },
+                        title: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Status Overview Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            const statusChart = new Chart(statusCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Accepted', 'Rejected'],
+                    datasets: [{
+                        label: 'Resumes',
+                        data: [{{ accepted }}, {{ rejected }}],
+                        backgroundColor: ['#198754', '#dc3545'],
+                        borderWidth: 1,
+                        borderColor: '#495057'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: '#495057'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: 'white'
+                            },
+                            grid: {
+                                color: '#495057'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadShortlistedCandidates() {
+            fetch('/api/shortlist')
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    const container = document.getElementById('shortlistResults');
+                    let html = '';
+                    
+                    if (Object.keys(data).length === 0) {
+                        html = '<p class="text-muted">No shortlisted candidates found</p>';
+                    } else {
+                        for (const department in data) {
+                            if (data.hasOwnProperty(department)) {
+                                const candidates = data[department];
+                                html += '<h6 class="mt-3">' + department + ' Department (' + candidates.length + ')</h6>';
+                                
+                                if (candidates.length === 0) {
+                                    html += '<p class="text-muted">No candidates</p>';
+                                } else {
+                                    candidates.forEach(function(candidate) {
+                                        html += 
+                                            '<div class="card bg-dark mb-2">' +
+                                                '<div class="card-body py-2">' +
+                                                    '<div class="d-flex justify-content-between align-items-center">' +
+                                                        '<div>' +
+                                                            '<strong>' + (candidate.candidate_name || 'Unknown') + '</strong>' +
+                                                            '<br>' +
+                                                            '<small class="text-muted">Score: ' + candidate.ranking_score.toFixed(1) + '</small>' +
+                                                        '</div>' +
+                                                        '<span class="badge bg-primary">' + candidate.ranking_score.toFixed(1) + '</span>' +
+                                                    '</div>' +
+                                                '</div>' +
+                                            '</div>';
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    
+                    container.innerHTML = html;
+                })
+                .catch(function(error) {
+                    console.error('Error loading shortlist:', error);
+                    document.getElementById('shortlistResults').innerHTML = '<p class="text-danger">Error loading data</p>';
+                });
+        }
+
+        function viewAnalysis(id) {
+            alert('Viewing analysis details for ID: ' + id + '\nIn a real implementation, this would show a detailed modal with the complete analysis report.');
+        }
+    </script>
+</body>
+</html>

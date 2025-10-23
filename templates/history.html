@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analysis History - Smart Resume Analyzer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <style>
+        .report-content {
+            background-color: #2c3034;
+            border: 1px solid #495057;
+            border-radius: 5px;
+            padding: 15px;
+            color: #e9ecef;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .table-responsive {
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            background-color: #495057;
+        }
+        
+        .progress-bar-success { background-color: #198754; }
+        .progress-bar-warning { background-color: #ffc107; }
+        .progress-bar-danger { background-color: #dc3545; }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-file-alt me-2"></i>Smart Resume Analyzer
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">Home</a>
+                <a class="nav-link active" href="/history">History</a>
+                <a class="nav-link" href="/dashboard">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5 pt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-history me-2"></i>Analysis History</h1>
+            <a href="/" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>New Analysis
+            </a>
+        </div>
+
+        {% if analyses %}
+        <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover">
+                <thead class="table-secondary">
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Candidate</th>
+                        <th>File</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th>Score</th>
+                        <th>Fraud Score</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for analysis in analyses %}
+                    <tr>
+                        <td>
+                            <small>{{ analysis.upload_date.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </td>
+                        <td>
+                            <strong>{{ analysis.candidate_name or 'Unknown' }}</strong>
+                        </td>
+                        <td>
+                            <small class="text-muted">
+                                {% if analysis.filename|length > 25 %}
+                                    {{ analysis.filename[:25] }}...
+                                {% else %}
+                                    {{ analysis.filename }}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ analysis.department or 'N/A' }}</span>
+                        </td>
+                        <td>
+                            {% if analysis.classification_status == 'Accepted' %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check me-1"></i>Accepted
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-times me-1"></i>Rejected
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="progress me-2" style="width: 60px; height: 8px;">
+                                    {% if analysis.ranking_score >= 70 %}
+                                    <div class="progress-bar progress-bar-success" style="width: {{ analysis.ranking_score }}%"></div>
+                                    {% elif analysis.ranking_score >= 40 %}
+                                    <div class="progress-bar progress-bar-warning" style="width: {{ analysis.ranking_score }}%"></div>
+                                    {% else %}
+                                    <div class="progress-bar progress-bar-danger" style="width: {{ analysis.ranking_score }}%"></div>
+                                    {% endif %}
+                                </div>
+                                {% if analysis.ranking_score >= 70 %}
+                                <span class="badge bg-success">{{ "%.1f"|format(analysis.ranking_score) }}</span>
+                                {% elif analysis.ranking_score >= 40 %}
+                                <span class="badge bg-warning">{{ "%.1f"|format(analysis.ranking_score) }}</span>
+                                {% else %}
+                                <span class="badge bg-danger">{{ "%.1f"|format(analysis.ranking_score) }}</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if analysis.overall_fraud_score > 70 %}
+                            <span class="badge bg-danger">{{ "%.1f"|format(analysis.overall_fraud_score) }}%</span>
+                            {% elif analysis.overall_fraud_score > 30 %}
+                            <span class="badge bg-warning">{{ "%.1f"|format(analysis.overall_fraud_score) }}%</span>
+                            {% else %}
+                            <span class="badge bg-success">{{ "%.1f"|format(analysis.overall_fraud_score) }}%</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info" onclick="showReport({{ analysis.id }})">
+                                <i class="fas fa-eye me-1"></i>View
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="text-center mt-4">
+            <p class="text-muted">
+                Showing {{ analyses|length }} analysis records
+            </p>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-history fa-4x text-muted mb-3"></i>
+            <h3 class="text-muted">No Analysis History</h3>
+            <p class="text-muted mb-4">You haven't analyzed any resumes yet.</p>
+            <a href="/" class="btn btn-primary btn-lg">
+                <i class="fas fa-search me-2"></i>Analyze Your First Resume
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal fade" id="reportModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-alt me-2"></i>Analysis Report
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <pre class="report-content" id="reportContent"></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="downloadModalReport()">
+                        <i class="fas fa-download me-1"></i>Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentReportContent = '';
+
+        function showReport(analysisId) {
+            // For demo purposes, show placeholder content
+            // In production, this would fetch from /analysis/{id}
+            currentReportContent = 'ANALYSIS REPORT - ID: ' + analysisId + '\n\n' +
+                'COMPREHENSIVE RESUME ANALYSIS REPORT\n' +
+                '====================================\n\n' +
+                'CANDIDATE INFORMATION:\n' +
+                'Name: Sample Candidate\n' +
+                'Email: sample@email.com\n' +
+                'Status: Accepted\n' +
+                'Department: IT\n' +
+                'Ranking Score: 85.5/100\n' +
+                'Fraud Score: 15%\n\n' +
+                'SKILLS DETECTED:\n' +
+                '• Programming: Python, JavaScript\n' +
+                '• Web Development: React, Node.js\n' +
+                '• Database: SQL, MongoDB\n\n' +
+                'RECOMMENDATION:\n' +
+                '✅ SHORTLIST - Strong candidate for IT department\n\n' +
+                'Note: This is a sample report. Upload a resume to see real analysis data.';
+            
+            document.getElementById('reportContent').textContent = currentReportContent;
+            const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+            modal.show();
+        }
+
+        function downloadModalReport() {
+            if (!currentReportContent) {
+                alert('No report content to download');
+                return;
+            }
+            
+            const blob = new Blob([currentReportContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'analysis_report_' + Date.now() + '.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

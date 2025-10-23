@@ -1,0 +1,71 @@
+[{
+	"resource": "/c:/resumeanalyzer/app.py",
+	"owner": "pylance10",
+	"code": {
+		"value": "reportArgumentType",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportArgumentType.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Argument of type \"str | None\" cannot be assigned to parameter \"filename\" of type \"str\" in function \"secure_filename\"\n  Type \"str | None\" is not assignable to type \"str\"\n    \"None\" is not assignable to \"str\"",
+	"source": "Pylance",
+	"startLineNumber": 164,
+	"startColumn": 45,
+	"endLineNumber": 164,
+	"endColumn": 58,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/resumeanalyzer/app.py",
+	"owner": "pylance10",
+	"code": {
+		"value": "reportCallIssue",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportCallIssue.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "No overloads for \"splitext\" match the provided arguments",
+	"source": "Pylance",
+	"startLineNumber": 176,
+	"startColumn": 20,
+	"endLineNumber": 176,
+	"endColumn": 51,
+	"relatedInformation": [
+		{
+			"startLineNumber": 149,
+			"startColumn": 5,
+			"endLineNumber": 149,
+			"endColumn": 13,
+			"message": "Overload 2 is the closest match",
+			"resource": "/c:/Users/kirub/.vscode/extensions/ms-python.vscode-pylance-2025.8.3/dist/typeshed-fallback/stdlib/posixpath.pyi"
+		}
+	],
+	"origin": "extHost1"
+},{
+	"resource": "/c:/resumeanalyzer/app.py",
+	"owner": "pylance10",
+	"code": {
+		"value": "reportArgumentType",
+		"target": {
+			"$mid": 1,
+			"path": "/microsoft/pylance-release/blob/main/docs/diagnostics/reportArgumentType.md",
+			"scheme": "https",
+			"authority": "github.com"
+		}
+	},
+	"severity": 8,
+	"message": "Argument of type \"str | None\" cannot be assigned to parameter \"p\" of type \"AnyOrLiteralStr@splitext\" in function \"splitext\"\n  Type \"str | None\" is not assignable to constrained type variable \"AnyOrLiteralStr\"",
+	"source": "Pylance",
+	"startLineNumber": 176,
+	"startColumn": 37,
+	"endLineNumber": 176,
+	"endColumn": 50,
+	"origin": "extHost1"
+}]

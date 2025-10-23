@@ -150,7 +150,7 @@ def analyze_resume():
         file = request.files['file']
         
         # Check if file was selected
-        if file.filename == '':
+        if not file.filename or file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
         # Validate file type
@@ -173,7 +173,7 @@ def analyze_resume():
         logger.info(f"📁 File saved: {filename}")
         
         # Extract text from file
-        file_ext = os.path.splitext(file.filename)[1].lower()
+        file_ext = os.path.splitext(original_filename)[1].lower()
         text = parser.extract_text(file_path, file_ext)
         
         if not text or len(text.strip()) < 50:

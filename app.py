@@ -132,6 +132,11 @@ def health_check():
         'database': 'connected' if db.session.bind else 'disconnected'
     })
 
+@app.route('/favicon.ico')
+def favicon():
+    """Serve favicon"""
+    return send_file('static/favicon.svg', mimetype='image/svg+xml')
+
 @app.route('/analyze', methods=['POST'])
 def analyze_resume():
     """Analyze uploaded resume"""

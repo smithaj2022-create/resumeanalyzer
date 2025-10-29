@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, make_response
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
@@ -6,6 +6,8 @@ import json
 import traceback
 import logging
 import numpy as np
+import csv
+from io import StringIO
 from werkzeug.utils import secure_filename
 
 # Configure logging
@@ -448,6 +450,53 @@ def get_analyses():
     except Exception as e:
         logger.error(f"❌ Analyses API error: {e}")
         return jsonify({'error': 'Failed to get analyses'}), 500
+
+@app.route('/export/csv')
+def export_csv():
+    """Export all analyses to CSV"""
+    try:
+        analyses = ResumeAnalysis.query.order_by(ResumeAnalysis.upload_date.desc()).all()
+        
+        # Create CSV in memory
+        si = StringIO()
+        writer = csv.writer(si)
+        
+        # Write header
+        writer.writerow([
+            'Candidate Name', 'Email', 'Phone', 'Department', 
+            'Final Decision', 'Decision Reason', 'Eligibility Score', 
+            'Skill Match %', 'AI Authenticity', 'Fraud Score',
+            'Experience (Years)', 'Education', 'Upload Date'
+        ])
+        
+        # Write data rows
+        for analysis in analyses:
+            writer.writerow([
+                analysis.candidate_name or 'N/A',
+                analysis.candidate_email or 'N/A',
+                analysis.candidate_phone or 'N/A',
+                analysis.department or 'N/A',
+                analysis.final_decision or analysis.classification_status or 'N/A',
+                analysis.final_decision_reason or 'N/A',
+                f"{analysis.eligibility_score:.1f}" if analysis.eligibility_score else 'N/A',
+                f"{analysis.skill_match_percentage:.1f}" if analysis.skill_match_percentage else 'N/A',
+                analysis.ai_authenticity_status or 'N/A',
+                f"{analysis.overall_fraud_score:.1f}",
+                f"{analysis.experience_years:.1f}",
+                analysis.education_level or 'N/A',
+                analysis.upload_date.strftime('%Y-%m-%d %H:%M:%S')
+            ])
+        
+        # Create response
+        output = make_response(si.getvalue())
+        output.headers["Content-Disposition"] = f"attachment; filename=resume_analysis_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        output.headers["Content-type"] = "text/csv"
+        
+        return output
+        
+    except Exception as e:
+        logger.error(f"❌ CSV export error: {e}")
+        return jsonify({'error': 'Failed to export CSV'}), 500
 
 @app.route('/analysis/<int:analysis_id>')
 def get_analysis(analysis_id):

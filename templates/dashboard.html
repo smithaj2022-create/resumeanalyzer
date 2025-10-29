@@ -180,18 +180,24 @@
             <div class="col-12">
                 <div class="card bg-secondary">
                     <div class="card-body">
-                        <h5 class="card-title">
-                            <i class="fas fa-list me-2"></i>All Analyzed Resumes
-                        </h5>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-list me-2"></i>All Analyzed Resumes
+                            </h5>
+                            <a href="/export/csv" class="btn btn-success">
+                                <i class="fas fa-download me-2"></i>Export to CSV
+                            </a>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-dark table-striped table-hover">
                                 <thead>
                                     <tr>
                                         <th>Name</th>
                                         <th>Department</th>
-                                        <th>Status</th>
-                                        <th>Ranking Score</th>
-                                        <th>Experience</th>
+                                        <th>Final Decision</th>
+                                        <th>Eligibility</th>
+                                        <th>Skill Match</th>
+                                        <th>AI Authenticity</th>
                                         <th>Fraud Score</th>
                                         <th>Date</th>
                                         <th>Actions</th>
@@ -205,30 +211,50 @@
                                             <span class="badge bg-info">{{ analysis.department or 'N/A' }}</span>
                                         </td>
                                         <td>
-                                            {% if analysis.classification_status == 'Accepted' %}
-                                            <span class="badge bg-success">Accepted</span>
+                                            {% if (analysis.final_decision or analysis.classification_status) == 'Shortlisted' or analysis.classification_status == 'Accepted' %}
+                                            <span class="badge bg-success">✓ {{ analysis.final_decision or 'Accepted' }}</span>
                                             {% else %}
-                                            <span class="badge bg-danger">Rejected</span>
+                                            <span class="badge bg-danger">✗ {{ analysis.final_decision or 'Rejected' }}</span>
                                             {% endif %}
                                         </td>
                                         <td>
                                             <div class="progress" style="height: 20px;">
-                                                {% if analysis.ranking_score >= 70 %}
-                                                <div class="progress-bar progress-bar-success" role="progressbar" style="width: {{ analysis.ranking_score }}%">
-                                                    {{ "%.1f"|format(analysis.ranking_score) }}
+                                                {% set score = analysis.eligibility_score or analysis.ranking_score %}
+                                                {% if score >= 70 %}
+                                                <div class="progress-bar progress-bar-success" role="progressbar" style="width: {{ score }}%">
+                                                    {{ "%.1f"|format(score) }}
                                                 </div>
-                                                {% elif analysis.ranking_score >= 40 %}
-                                                <div class="progress-bar progress-bar-warning" role="progressbar" style="width: {{ analysis.ranking_score }}%">
-                                                    {{ "%.1f"|format(analysis.ranking_score) }}
+                                                {% elif score >= 40 %}
+                                                <div class="progress-bar progress-bar-warning" role="progressbar" style="width: {{ score }}%">
+                                                    {{ "%.1f"|format(score) }}
                                                 </div>
                                                 {% else %}
-                                                <div class="progress-bar progress-bar-danger" role="progressbar" style="width: {{ analysis.ranking_score }}%">
-                                                    {{ "%.1f"|format(analysis.ranking_score) }}
+                                                <div class="progress-bar progress-bar-danger" role="progressbar" style="width: {{ score }}%">
+                                                    {{ "%.1f"|format(score) }}
                                                 </div>
                                                 {% endif %}
                                             </div>
                                         </td>
-                                        <td>{{ "%.1f"|format(analysis.experience_years) }} years</td>
+                                        <td>
+                                            {% if analysis.skill_match_percentage %}
+                                            <span class="badge bg-primary">{{ "%.1f"|format(analysis.skill_match_percentage) }}%</span>
+                                            {% else %}
+                                            <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if analysis.ai_authenticity_status %}
+                                                {% if 'Human' in analysis.ai_authenticity_status %}
+                                                <span class="badge bg-success" style="font-size: 0.75rem;">{{ analysis.ai_authenticity_status }}</span>
+                                                {% elif 'Possibly' in analysis.ai_authenticity_status %}
+                                                <span class="badge bg-warning" style="font-size: 0.75rem;">{{ analysis.ai_authenticity_status }}</span>
+                                                {% else %}
+                                                <span class="badge bg-danger" style="font-size: 0.75rem;">{{ analysis.ai_authenticity_status }}</span>
+                                                {% endif %}
+                                            {% else %}
+                                            <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        </td>
                                         <td>
                                             {% if analysis.overall_fraud_score > 70 %}
                                             <span class="badge bg-danger">{{ "%.1f"|format(analysis.overall_fraud_score) }}%</span>

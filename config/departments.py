@@ -51,8 +51,8 @@ DEPARTMENTS = {
         'min_experience': 1.5,
         'required_education': ['MBA', 'BBA', 'Marketing', 'Business', 'Communications'],
         'weights': {
-            'skill_match': 45,
-            'experience': 25,
+            'skill_match': 50,
+            'experience': 20,
             'education': 15,
             'projects_certs': 15
         },
@@ -69,8 +69,8 @@ DEPARTMENTS = {
         'min_experience': 2.0,
         'required_education': ['MBA', 'BBA', 'HR', 'Human Resources', 'Business', 'Psychology'],
         'weights': {
-            'skill_match': 40,
-            'experience': 30,
+            'skill_match': 50,
+            'experience': 20,
             'education': 15,
             'projects_certs': 15
         },
@@ -87,10 +87,10 @@ DEPARTMENTS = {
         'min_experience': 2.0,
         'required_education': ['MBA', 'CA', 'CFA', 'Finance', 'Accounting', 'Commerce', 'B.Com', 'M.Com'],
         'weights': {
-            'skill_match': 45,
-            'experience': 25,
-            'education': 20,
-            'projects_certs': 10
+            'skill_match': 50,
+            'experience': 20,
+            'education': 15,
+            'projects_certs': 15
         },
         'min_score': 70
     },
@@ -105,8 +105,8 @@ DEPARTMENTS = {
         'min_experience': 2.5,
         'required_education': ['MBA', 'B.Tech', 'M.Tech', 'Engineering', 'Business', 'Computer Science'],
         'weights': {
-            'skill_match': 45,
-            'experience': 25,
+            'skill_match': 50,
+            'experience': 20,
             'education': 15,
             'projects_certs': 15
         },
@@ -124,8 +124,8 @@ DEPARTMENTS = {
         'required_education': ['B.Tech', 'B.E.', 'M.Tech', 'Computer Science', 'IT', 'Engineering'],
         'weights': {
             'skill_match': 50,
-            'experience': 25,
-            'education': 10,
+            'experience': 20,
+            'education': 15,
             'projects_certs': 15
         },
         'min_score': 70

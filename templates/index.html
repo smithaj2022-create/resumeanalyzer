@@ -48,12 +48,32 @@
             <p class="lead text-muted">Upload your resume for instant AI analysis, fraud detection, and career recommendations</p>
         </div>
 
+        <!-- Department Selection -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-lg-8 col-md-10">
+                <div class="card bg-secondary">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">
+                            <i class="fas fa-building me-2"></i>Step 1: Select Department
+                        </h5>
+                        <select id="departmentSelect" class="form-select form-select-lg">
+                            <option value="">Loading departments...</option>
+                        </select>
+                        <small class="text-muted mt-2 d-block">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Choose the department to match the resume against specific job criteria
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Upload Section -->
         <div class="row justify-content-center">
             <div class="col-lg-8 col-md-10">
                 <div class="upload-area" id="uploadArea">
                     <i class="fas fa-cloud-upload-alt fa-4x mb-3 text-primary"></i>
-                    <h3 class="mb-2">Drag & Drop Your Resume</h3>
+                    <h3 class="mb-2">Step 2: Upload Resume</h3>
                     <p class="text-muted mb-4">Supports PDF and DOCX files (Max 16MB)</p>
                     <input type="file" id="fileInput" accept=".pdf,.docx" class="d-none">
                     <button class="btn btn-primary btn-lg px-4" onclick="document.getElementById('fileInput').click()">
@@ -163,6 +183,30 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Load departments on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/departments')
+                .then(response => response.json())
+                .then(data => {
+                    const select = document.getElementById('departmentSelect');
+                    if (data.success && data.departments) {
+                        select.innerHTML = '<option value="">-- Select Department --</option>';
+                        data.departments.forEach(dept => {
+                            const option = document.createElement('option');
+                            option.value = dept;
+                            option.textContent = dept;
+                            select.appendChild(option);
+                        });
+                    } else {
+                        select.innerHTML = '<option value="">Error loading departments</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading departments:', error);
+                    document.getElementById('departmentSelect').innerHTML = '<option value="">Error loading departments</option>';
+                });
+        });
+
         // File upload handling
         document.getElementById('fileInput').addEventListener('change', function(e) {
             if (e.target.files.length > 0) {
@@ -206,8 +250,16 @@
         }
 
         function uploadFile(file) {
+            // Check if department is selected
+            const department = document.getElementById('departmentSelect').value;
+            if (!department) {
+                alert('Please select a department before uploading a resume.');
+                return;
+            }
+
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('department', department);
 
             // Show loading modal
             const loadingModalEl = document.getElementById('loadingModal');
@@ -272,26 +324,43 @@
 
             // Update score cards
             const scoreCards = document.getElementById('scoreCards');
+            const decisionIcon = data.final_decision === 'Shortlisted' ? 'check-circle' : 'times-circle';
+            const decisionClass = data.final_decision === 'Shortlisted' ? 'low-risk' : 'high-risk';
+            
             scoreCards.innerHTML = `
                 <div class="col-md-3 mb-3">
-                    <div class="score-card ${data.classification_status === 'Accepted' ? 'low-risk' : 'high-risk'}">
-                        <i class="fas fa-${data.classification_status === 'Accepted' ? 'check-circle' : 'times-circle'} fa-2x mb-2"></i>
-                        <h5>Status</h5>
-                        <h2>${data.classification_status}</h2>
+                    <div class="score-card ${decisionClass}">
+                        <i class="fas fa-${decisionIcon} fa-2x mb-2"></i>
+                        <h5>Final Decision</h5>
+                        <h2>${data.final_decision || data.classification_status}</h2>
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
                     <div class="score-card bg-info">
                         <i class="fas fa-building fa-2x mb-2"></i>
                         <h5>Department</h5>
-                        <h2>${data.department}</h2>
+                        <h2 style="font-size: 1.3rem;">${data.department}</h2>
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
                     <div class="score-card bg-primary">
-                        <i class="fas fa-star fa-2x mb-2"></i>
-                        <h5>Ranking Score</h5>
-                        <h2>${data.ranking_score.toFixed(1)}</h2>
+                        <i class="fas fa-chart-line fa-2x mb-2"></i>
+                        <h5>Eligibility Score</h5>
+                        <h2>${data.eligibility_score ? data.eligibility_score.toFixed(1) : data.ranking_score.toFixed(1)}/100</h2>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="score-card bg-success">
+                        <i class="fas fa-tools fa-2x mb-2"></i>
+                        <h5>Skill Match</h5>
+                        <h2>${data.skill_match_percentage ? data.skill_match_percentage.toFixed(1) : 'N/A'}%</h2>
+                    </div>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <div class="score-card ${getAuthenticityClass(data.ai_authenticity_status)}">
+                        <i class="fas fa-robot fa-2x mb-2"></i>
+                        <h5>AI Authenticity</h5>
+                        <h2 style="font-size: 1.2rem;">${data.ai_authenticity_status || 'N/A'}</h2>
                     </div>
                 </div>
                 <div class="col-md-3 mb-3">
@@ -337,6 +406,14 @@
             if (score >= 70) return 'high-risk';
             if (score >= 30) return 'medium-risk';
             return 'low-risk';
+        }
+
+        function getAuthenticityClass(status) {
+            if (!status) return 'bg-secondary';
+            if (status.includes('Human-Written')) return 'low-risk';
+            if (status.includes('Possibly')) return 'medium-risk';
+            if (status.includes('AI-Generated')) return 'high-risk';
+            return 'bg-secondary';
         }
 
         function downloadReport() {

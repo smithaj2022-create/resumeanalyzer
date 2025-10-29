@@ -47,6 +47,12 @@ class ResumeAnalysis(db.Model):
     skill_authenticity_score = db.Column(db.Float, default=0.0)
     overall_fraud_score = db.Column(db.Float, default=0.0)
     
+    eligibility_score = db.Column(db.Float, default=0.0)
+    skill_match_percentage = db.Column(db.Float, default=0.0)
+    ai_authenticity_status = db.Column(db.String(50))
+    final_decision = db.Column(db.String(20))
+    final_decision_reason = db.Column(db.String(200))
+    
     analysis_report = db.Column(db.Text)
     processing_time = db.Column(db.Float)  # Processing time in seconds
     
@@ -66,6 +72,11 @@ class ResumeAnalysis(db.Model):
             'education_level': self.education_level,
             'ai_generated_score': self.ai_generated_score,
             'overall_fraud_score': self.overall_fraud_score,
+            'eligibility_score': self.eligibility_score,
+            'skill_match_percentage': self.skill_match_percentage,
+            'ai_authenticity_status': self.ai_authenticity_status,
+            'final_decision': self.final_decision,
+            'final_decision_reason': self.final_decision_reason,
             'analysis_report': self.analysis_report,
             'skills': json.loads(self.skills) if self.skills else [],
             'upload_date': self.upload_date.strftime('%Y-%m-%d %H:%M:%S'),
@@ -77,6 +88,12 @@ try:
     from utils.parser import ResumeParser
     from models.classifier import ResumeClassifier
     from models.ranker import ResumeRanker
+    from config.departments import (
+        get_all_departments, 
+        calculate_eligibility_score,
+        get_ai_authenticity_status,
+        get_final_decision
+    )
     logger.info("✅ All modules imported successfully")
 except ImportError as e:
     logger.error(f"❌ Import error: {e}")
@@ -137,12 +154,33 @@ def favicon():
     """Serve favicon"""
     return send_file('static/favicon.svg', mimetype='image/svg+xml')
 
+@app.route('/api/departments', methods=['GET'])
+def get_departments():
+    """Get list of available departments"""
+    try:
+        departments = get_all_departments()
+        return jsonify({
+            'success': True,
+            'departments': departments
+        })
+    except Exception as e:
+        logger.error(f"Error getting departments: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/analyze', methods=['POST'])
 def analyze_resume():
     """Analyze uploaded resume"""
     start_time = datetime.now()
     
     try:
+        # Get selected department
+        selected_department = request.form.get('department')
+        if not selected_department:
+            return jsonify({'error': 'Please select a department'}), 400
+        
         # Check if file was uploaded
         if 'file' not in request.files:
             return jsonify({'error': 'No file uploaded'}), 400
@@ -197,8 +235,36 @@ def analyze_resume():
         # Classify resume
         status, department, ranking_score = classifier.classify_resume(text, skills)
         
+        # Use selected department instead of auto-classified
+        department = selected_department
+        
         # Fraud detection
         fraud_score, fraud_findings = classifier.detect_fraud(text, skills, experience)
+        
+        # Prepare candidate data for eligibility scoring
+        all_skills = []
+        for category in skills.values():
+            all_skills.extend(category)
+        
+        candidate_data = {
+            'skills': all_skills,
+            'experience_years': experience['total_years'],
+            'education': json.dumps(education, ensure_ascii=False),
+            'work_experience': json.dumps(experience, ensure_ascii=False)
+        }
+        
+        # Calculate eligibility score
+        eligibility_result = calculate_eligibility_score(candidate_data, department)
+        
+        # Get AI authenticity status
+        ai_authenticity = get_ai_authenticity_status(fraud_score)
+        
+        # Get final decision
+        final_decision, decision_reason = get_final_decision(
+            fraud_score, 
+            eligibility_result, 
+            fraud_score
+        )
         
         # Calculate processing time
         processing_time = (datetime.now() - start_time).total_seconds()
@@ -217,30 +283,44 @@ Email: {personal_info['email'] or 'Not specified'}
 Phone: {personal_info['phone'] or 'Not specified'}
 Location: {personal_info['location'] or 'Not specified'}
 
-CLASSIFICATION RESULTS:
+DEPARTMENT & ELIGIBILITY:
+────────────────────────
+Selected Department: {department}
+Eligibility Score: {eligibility_result['total_score']:.1f}/{eligibility_result['min_score_required']}
+Skill Match: {eligibility_result['skill_match_percentage']:.1f}%
+Status: {eligibility_result['message']}
+
+SCORE BREAKDOWN:
+───────────────
+• Skills: {eligibility_result['breakdown']['skill_score']:.1f}
+• Experience: {eligibility_result['breakdown']['experience_score']:.1f}
+• Education: {eligibility_result['breakdown']['education_score']:.1f}
+• Projects/Certs: {eligibility_result['breakdown']['projects_score']:.1f}
+
+EXPERIENCE & EDUCATION:
 ──────────────────────
-Status: {status}
-Recommended Department: {department}
-Ranking Score: {ranking_score:.1f}/100
-Experience: {experience['total_years']} years
+Total Experience: {experience['total_years']} years
 Highest Education: {education['highest_degree']}
 
 SKILLS ANALYSIS:
 ───────────────
 Total Skills Categories: {len(skills)}
-Total Skills: {sum(len(skills[cat]) for cat in skills)}
+Total Skills Detected: {sum(len(skills[cat]) for cat in skills)}
 
 {json.dumps(skills, indent=2, ensure_ascii=False)}
 
-FRAUD DETECTION:
-───────────────
+AI AUTHENTICITY & FRAUD DETECTION:
+─────────────────────────────────
+AI Authenticity Status: {ai_authenticity}
 Overall Fraud Score: {fraud_score}%
 Findings:
 {chr(10).join(['• ' + finding for finding in fraud_findings]) if fraud_findings else '• No significant fraud indicators detected'}
 
-RECOMMENDATION:
+FINAL DECISION:
 ──────────────
-{'✅ SHORTLIST - Strong candidate for ' + department + ' department' if status == 'Accepted' else '❌ REJECT - Does not meet minimum criteria'}
+Decision: {final_decision}
+Reason: {decision_reason}
+{'✅ RECOMMENDED FOR HIRING' if final_decision == 'Shortlisted' else '❌ NOT RECOMMENDED'}
 """
 
         # Save analysis to database
@@ -254,12 +334,18 @@ RECOMMENDATION:
             work_experience=json.dumps(experience, ensure_ascii=False),
             education=json.dumps(education, ensure_ascii=False),
             skills=json.dumps(skills, ensure_ascii=False),
-            classification_status=status,
+            classification_status=final_decision,
             department=department,
             ranking_score=ranking_score,
             experience_years=experience['total_years'],
             education_level=education['highest_degree'],
             overall_fraud_score=fraud_score,
+            ai_generated_score=fraud_score,
+            eligibility_score=eligibility_result['total_score'],
+            skill_match_percentage=eligibility_result['skill_match_percentage'],
+            ai_authenticity_status=ai_authenticity,
+            final_decision=final_decision,
+            final_decision_reason=decision_reason,
             analysis_report=analysis_report,
             processing_time=processing_time
         )

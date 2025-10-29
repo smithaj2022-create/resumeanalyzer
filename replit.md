@@ -36,6 +36,17 @@ AI-powered resume analysis web application built with Flask. The system automati
 - Full analysis report
 
 ## Recent Changes
+- **2025-10-29**: Enhanced with Department-Based AI Screening System
+  - **New Department Configuration**: Added 7 departments (Software Engineering, Data Science, Marketing, HR, Finance, Product Management, DevOps) with predefined criteria
+  - **Eligibility Scoring System**: Implemented weighted scoring (Skills 50%, Experience 20%, Education 15%, Projects/Certs 15%)
+  - **AI Authenticity Detection**: Enhanced fraud detection with AI-generated content classification (Human-Written, Possibly AI-Assisted, AI-Generated)
+  - **Smart Decision Engine**: Automated accept/reject decisions based on AI authenticity + eligibility + fraud scores
+  - **Database Enhancements**: Added fields for eligibility_score, skill_match_percentage, ai_authenticity_status, final_decision, final_decision_reason
+  - **UI Improvements**: Department selection before upload, enhanced results display with 6 metric cards
+  - **Dashboard Updates**: New table columns for Final Decision, Eligibility, Skill Match, AI Authenticity
+  - **CSV Export**: Downloadable reports with all candidate evaluation metrics
+  - **API Endpoints**: Added /api/departments for department list, /export/csv for data export
+
 - **2025-10-23**: Project imported to Replit environment
   - Installed Python 3.11 and all dependencies
   - Fixed numpy import issue in app.py

@@ -1,0 +1,168 @@
+Got it, Kiru 👍 You want a **detailed functional prompt (or feature specification)** for a system that:
+
+* Lets **admin select a department**
+* Allows **uploading resumes**
+* **Automatically analyzes** each resume to determine
+
+  1. Whether it’s **AI-generated or fake**
+  2. Whether the **candidate is eligible** for the selected role based on required skills/experience
+  3. Applies a **criteria-based shortlisting process** (if the candidate passes AI-detection + eligibility check → “Accepted”, else → “Rejected”)
+
+Here’s a **detailed prompt specification** you can use either to design the feature, feed into an AI system, or describe in your documentation 👇
+
+---
+
+## 🧠 **Detailed Prompt: AI-Powered Resume Screening System**
+
+### **Feature Name:**
+
+**AI Resume Verification & Eligibility Shortlisting**
+
+---
+
+### **Objective:**
+
+To automate the process of identifying **AI-generated or fake resumes** and shortlisting **eligible candidates** for specific departments or roles based on required job criteria.
+
+---
+
+### **Admin Workflow:**
+
+1. **Department Selection:**
+
+   * Admin selects a department (e.g., Software Engineering, Data Science, Marketing, HR, Finance).
+   * Each department has a predefined list of **required skills, experience level, and educational qualifications**.
+
+2. **Resume Upload:**
+
+   * Admin uploads one or multiple resumes (PDF/DOC/DOCX formats).
+   * System extracts candidate data using **AI-based text extraction (OCR + NLP)** including:
+
+     * Name
+     * Email
+     * Contact
+     * Education
+     * Experience
+     * Skills
+     * Certifications
+     * Projects or achievements
+
+3. **AI Authenticity Check:**
+
+   * System performs **AI Content Detection** to verify if the resume text is **AI-generated or human-written**, using:
+
+     * AI-text probability score
+     * Pattern recognition (overuse of formal tone, structured bullet patterns, repetitive phrasing, unnatural keywords, etc.)
+     * Metadata analysis (document creation/editing timestamps, embedded AI tool signatures)
+
+   **Result:**
+
+   * “AI-Generated”, “Possibly AI-Assisted”, or “Human-Written”
+
+4. **Fake Resume Detection:**
+
+   * Uses multiple checks to detect inconsistencies:
+
+     * Validation of company names, universities, and certifications with known databases.
+     * Cross-check job title–experience–skill mismatch.
+     * Identify overinflated claims (e.g., “5 years of experience” but graduation date is recent).
+
+5. **Eligibility Analysis:**
+
+   * System compares candidate profile vs. **role criteria** from the selected department:
+
+     * Required Skills Match (e.g., ≥ 70% match threshold)
+     * Minimum Experience (e.g., ≥ 2 years)
+     * Required Degree (e.g., B.Tech in CS/IT for Software Dept)
+     * Optional bonus criteria (certifications, project experience)
+
+   **Scoring Example:**
+
+   | Criteria        | Weight (%) | Candidate Score       |
+   | --------------- | ---------- | --------------------- |
+   | Skill Match     | 50         | 42                    |
+   | Experience      | 20         | 20                    |
+   | Education       | 15         | 15                    |
+   | Projects/Certs  | 15         | 10                    |
+   | **Total Score** | 100        | **87/100 (Eligible)** |
+
+6. **Eligibility Decision Rule:**
+
+   ```
+   IF (AI authenticity = “Human-Written” OR “Possibly AI-Assisted”) 
+   AND (Total Score >= 70%)
+   THEN → Candidate = “Shortlisted”
+   ELSE → Candidate = “Rejected”
+   ```
+
+7. **Result Display:**
+
+   * A dashboard shows:
+
+     | Candidate Name | Department   | AI Detection         | Eligibility Score | Final Decision |
+     | -------------- | ------------ | -------------------- | ----------------- | -------------- |
+     | John Doe       | Software     | Human-Written        | 82%               | ✅ Shortlisted  |
+     | Jane Smith     | Marketing    | AI-Generated         | 78%               | ❌ Rejected     |
+     | Arjun R        | Data Science | Possibly AI-Assisted | 74%               | ✅ Shortlisted  |
+
+8. **Downloadable Report:**
+
+   * Option to export a PDF/Excel report containing candidate evaluation summary, AI authenticity score, and eligibility reasoning.
+
+---
+
+### **Technical Modules Involved:**
+
+| Module             | Description                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Resume Parser      | Extracts structured data using NLP & regex from PDF/DOCX                                                     |
+| AI Text Detector   | Evaluates probability of AI-generated content (using models like OpenAI, GPTZero, or custom LLM classifiers) |
+| Skill Matcher      | Compares resume skills with department skill dataset using cosine similarity or semantic embeddings          |
+| Eligibility Scorer | Calculates weighted score based on role requirements                                                         |
+| Decision Engine    | Applies acceptance/rejection rules                                                                           |
+| Dashboard UI       | Displays results with filters for department, AI authenticity, and score range                               |
+
+---
+
+### **Custom Criteria (Admin-Defined):**
+
+Admin can configure:
+
+* AI authenticity threshold (e.g., reject if > 70% AI-generated)
+* Minimum skill match %
+* Required years of experience
+* Minimum total score for eligibility
+
+---
+
+### **Example Prompt for Implementation (for AI Model):**
+
+> “Analyze the uploaded resume for the [Software Engineering] department.
+>
+> 1. Extract candidate details: Name, Skills, Experience, Education.
+> 2. Detect if the content is AI-generated or human-written.
+> 3. Compare the candidate’s skills and experience against the required job criteria: Python, SQL, Machine Learning, 2+ years experience.
+> 4. Calculate eligibility score (out of 100).
+> 5. Output final decision — Shortlisted if (AI authenticity = Human/Possibly AI-Assisted) and (Score ≥ 70), else Rejected.”
+
+---
+
+### **Final Output Example:**
+
+```
+{
+  "candidate_name": "Arjun R",
+  "department": "Data Science",
+  "ai_detection": "Possibly AI-Assisted (35% AI Probability)",
+  "skills_match": "78%",
+  "experience_match": "2.5 years / 2 years required",
+  "education_match": "B.Tech in CS",
+  "total_score": 81,
+  "final_decision": "✅ Shortlisted"
+}
+```
+
+---
+
+Would you like me to convert this into a **system design (architecture + flow diagram)** next — showing how each module interacts (Admin → Resume Upload → AI Detection → Eligibility → Result Dashboard)?
+It’ll make it ready for your project documentation or prototype planning.
